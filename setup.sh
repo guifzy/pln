@@ -672,11 +672,12 @@ fix_volume_permissions
 check_service() {
     local name=$1
     local url=$2
+    local extra_header=$3
     local max_attempts=30
     local attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
-        if curl -f "$url" &> /dev/null; then
+        if curl -f ${extra_header:+-H "$extra_header"} "$url" &> /dev/null; then
             log_success "$name está respondendo"
             return 0
         fi
@@ -696,7 +697,7 @@ check_service() {
 # Verificar serviços
 log_info "Verificando saúde dos serviços..."
 
-check_service "Qdrant" "http://localhost:6333/collections"
+check_service "Qdrant" "http://localhost:6333/collections" "api-key: ${QDRANT_API_KEY}"
 check_service "MinIO" "http://localhost:9000/minio/health/live"
 
 # Verificar PostgreSQL
@@ -740,7 +741,7 @@ else
 fi
 
 # Verificar se consegue acessar Qdrant
-if curl -f "http://localhost:6333/collections" &> /dev/null; then
+if curl -f -H "api-key: ${QDRANT_API_KEY}" "http://localhost:6333/collections" &> /dev/null; then
     log_success "Qdrant API funcionando"
 else
     log_warning "Qdrant API pode não estar pronta"

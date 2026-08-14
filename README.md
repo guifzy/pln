@@ -309,9 +309,11 @@ Aguarde 1–3 minutos na primeira execução (download de imagens).
 | MinIO | http://localhost:9001 | `minioadmin` / `minioadmin` |
 | PostgreSQL | `localhost:5432` | `chat_user` / `chat_password` |
 | pgAdmin | http://localhost:5050 | `admin@example.com` / `admin` |
-| n8n | http://localhost:5678 | `admin` / `admin123` |
+| n8n | http://localhost:5678 | crie sua conta no primeiro acesso (veja nota abaixo) |
 
 Credenciais padrão são só para ambiente educacional local.
+
+> **Nota sobre o login do n8n:** as versões atuais do n8n (imagem `n8nio/n8n:latest`) descontinuaram o basic auth — as variáveis `N8N_BASIC_AUTH_USER`/`N8N_BASIC_AUTH_PASSWORD` do `.env` são ignoradas. No primeiro acesso a http://localhost:5678, o n8n mostra uma tela de **cadastro de conta "owner"** (dono da instância). Preencha com um e-mail e senha à sua escolha (não precisa ser um e-mail real, é só para o lab local) — esse será o login usado nos próximos acessos.
 
 Comandos úteis no dia a dia:
 
@@ -1117,7 +1119,7 @@ docker compose logs n8n
 docker compose restart n8n
 ```
 
-Acesse http://localhost:5678 (`admin` / `admin123`). Se credenciais/workflows “sumirem” após rebuild, verifique o volume e o arquivo `volumes/n8n/config` (encryption key) — o script `scripts/ensure-n8n-encryption-key.sh` ajuda a manter a chave estável.
+Acesse http://localhost:5678. No primeiro acesso, o n8n pede para criar uma conta "owner" (e-mail/senha à sua escolha) — as variáveis `N8N_BASIC_AUTH_USER`/`N8N_BASIC_AUTH_PASSWORD` (`admin`/`admin123`) não são mais usadas para login pelas versões atuais do n8n. Se credenciais/workflows “sumirem” após rebuild, verifique o volume e o arquivo `volumes/n8n/config` (encryption key) — o script `scripts/ensure-n8n-encryption-key.sh` ajuda a manter a chave estável.
 
 **PostgreSQL não conecta**
 
