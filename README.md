@@ -366,6 +366,9 @@ docker compose --profile gliner up -d --force-recreate rag-demo-app
 =======
 | n8n | http://localhost:5678 | `admin` / `admin123` |
 | GLiNER (opcional) | http://localhost:8080/health | — (só com `--profile gliner`) |
+<<<<<<< HEAD
+>>>>>>> 4a30be53e5c5cd5f9247b57ec8953c57a7309eee
+=======
 >>>>>>> 4a30be53e5c5cd5f9247b57ec8953c57a7309eee
 
 Credenciais padrão são só para ambiente educacional local.
