@@ -35,6 +35,7 @@ DEFAULT_LABELS = [
     ).split(",")
     if item.strip()
 ]
+USE_BERTIMBAU = os.getenv("USE_BERTIMBAU", "true").strip().lower() in {"1", "true", "yes", "on"}
 GLINER_THRESHOLD = float(os.getenv("GLINER_THRESHOLD", "0.4"))
 GLINER_TRAINED_ONLY = os.getenv("GLINER_TRAINED_ONLY", "false").strip().lower() in {
     "1",
@@ -72,7 +73,7 @@ def _load_gliner(path: str):
 
 def _load_models() -> None:
     global _bert_pipeline, _gliner_model, _models_error, _loaded_gliner_path, _runtime_trained_only
-    trained_only = GLINER_TRAINED_ONLY and checkpoint_exists(GLINER_MODEL)
+    trained_only = (GLINER_TRAINED_ONLY and checkpoint_exists(GLINER_MODEL)) or not USE_BERTIMBAU
     _runtime_trained_only = trained_only
     if not trained_only:
         try:
@@ -95,6 +96,7 @@ def _load_models() -> None:
 def _swap_inference(gliner_path: str, trained_only: bool) -> None:
     """Carrega o GLiNER (e o NER extra se preciso) e só então troca as referências."""
     global _bert_pipeline, _gliner_model, _models_error, _loaded_gliner_path, _runtime_trained_only
+    trained_only = trained_only or not USE_BERTIMBAU
     new_gliner = _load_gliner(gliner_path)
     new_bert = None
     if not trained_only:

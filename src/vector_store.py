@@ -3,6 +3,7 @@
 import os
 import json
 import time
+import random
 import uuid
 import re
 import unicodedata
@@ -1339,7 +1340,7 @@ class QdrantVectorStore:
             raise e
 
     def scroll_chunk_payloads(
-        self, collection_name: str, max_chunks: int = 2000
+        self, collection_name: str, max_chunks: int = 2000, randomize: bool = False
     ) -> List[Dict[str, Any]]:
         """Lê payloads de chunks sem vetores e sem alterar a collection."""
         self._ensure_connection()
@@ -1347,15 +1348,34 @@ class QdrantVectorStore:
         next_offset = None
         batch_size = 64
         limit = max(1, int(max_chunks))
+        sampled = None
+        if randomize:
+            ids, offset = [], None
+            while True:
+                pts, offset = self.client.scroll(
+                    collection_name=collection_name, limit=1000, offset=offset,
+                    with_payload=False, with_vectors=False,
+                )
+                ids += [p.id for p in pts if p.id != 0]
+                if offset is None or not pts:
+                    break
+            sampled = self.client.retrieve(
+                collection_name=collection_name,
+                ids=random.sample(ids, min(limit, len(ids))),
+                with_payload=True, with_vectors=False,
+            )
 
         while len(chunks) < limit:
-            points, next_offset = self.client.scroll(
-                collection_name=collection_name,
-                limit=min(batch_size, limit - len(chunks)),
-                offset=next_offset,
-                with_payload=True,
-                with_vectors=False,
-            )
+            if sampled is not None:
+                points, next_offset = sampled, None
+            else:
+                points, next_offset = self.client.scroll(
+                    collection_name=collection_name,
+                    limit=min(batch_size, limit - len(chunks)),
+                    offset=next_offset,
+                    with_payload=True,
+                    with_vectors=False,
+                )
             for point in points:
                 if point.id == 0:
                     continue

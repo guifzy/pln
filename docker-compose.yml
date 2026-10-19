@@ -50,6 +50,7 @@ services:
       - GLINER_LABELS=${GLINER_LABELS:-pessoa,organização,local,material,processo,norma,instituição}
       - GLINER_THRESHOLD=${GLINER_THRESHOLD:-0.4}
       - GLINER_TRAINED_ONLY=${GLINER_TRAINED_ONLY:-false}
+      - USE_BERTIMBAU=${USE_BERTIMBAU:-true}
       - GLINER_CHECKPOINT_ROOT=/models/checkpoints
       - HF_HOME=/models
     volumes:
@@ -85,6 +86,7 @@ services:
       - GLINER_LABELS=${GLINER_LABELS:-pessoa,organização,local,material,processo,norma,instituição}
       - GLINER_THRESHOLD=${GLINER_THRESHOLD:-0.4}
       - GLINER_TRAINED_ONLY=${GLINER_TRAINED_ONLY:-false}
+      - USE_BERTIMBAU=${USE_BERTIMBAU:-true}
       - GLINER_CHECKPOINT_ROOT=/models/checkpoints
       - HF_HOME=/models
     volumes:

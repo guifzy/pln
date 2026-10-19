@@ -70,6 +70,8 @@ def extract_regex_entities(text: str) -> List[EntitySpan]:
     """Extrai códigos, normas, processos, CNPJ e siglas por regex."""
     if not text or not isinstance(text, str):
         return []
+    if os.getenv("REGEX_ENTITIES", "true").strip().lower() not in {"1", "true", "yes", "on"}:
+        return []
 
     spans: List[EntitySpan] = []
     for pattern in (LEI_RE, NORMA_RE, LICITACAO_RE, CNPJ_RE, PROCESSO_RE):

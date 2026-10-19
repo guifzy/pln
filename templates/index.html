@@ -6038,6 +6038,9 @@ DOCUMENTO:
                 renderEntityTable('MISC', entities.MISC),
                 renderEntityTable('Códigos', entities.CODIGO),
                 renderEntityTable('Siglas', entities.SIGLA),
+                ...Object.keys(entities)
+                    .filter((key) => !['PER', 'ORG', 'LOC', 'INSTITUICAO', 'MATERIAL', 'PROCESSO', 'NORMA', 'MISC', 'CODIGO', 'SIGLA', 'TFIDF'].includes(key))
+                    .map((key) => renderEntityTable(key, entities[key])),
                 renderTfidfTable(data.tfidf_terms, data.neighbor_top),
                 '</div>'
             ].join('');

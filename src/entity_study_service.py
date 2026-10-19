@@ -49,6 +49,14 @@ TYPE_WEIGHTS = {
     "PROCESSO": 1.8,
     "MISC": 1.5,
     "TFIDF": 1.0,
+    "PHYSICIST": 2.5,
+    "INSTITUTION": 2.4,
+    "PHYSICAL_THEORY": 2.2,
+    "PHYSICAL_PHENOMENON": 2.0,
+    "ASTRONOMICAL_OBJECT": 2.0,
+    "MATHEMATICAL_CONCEPT": 1.8,
+    "EXPERIMENT": 1.8,
+    "EQUATION": 1.0,
 }
 
 LABEL_GROUPS = (
@@ -62,6 +70,14 @@ LABEL_GROUPS = (
     "PROCESSO",
     "NORMA",
     "INSTITUICAO",
+    "PHYSICIST",
+    "INSTITUTION",
+    "PHYSICAL_THEORY",
+    "PHYSICAL_PHENOMENON",
+    "ASTRONOMICAL_OBJECT",
+    "MATHEMATICAL_CONCEPT",
+    "EXPERIMENT",
+    "EQUATION",
     "TFIDF",
 )
 
@@ -151,6 +167,7 @@ def analyze_chunks(
                 tfidf_max=tfidf_max,
                 point_id=point_id,
                 file_name=file_name,
+                ner_score=float(span.get("score", 1.0)),
             )
 
         ranked_terms = sorted(row_tfidf.items(), key=lambda item: item[1], reverse=True)
@@ -183,7 +200,7 @@ def analyze_chunks(
         df = len(item["point_ids"])
         idf = global_idf.get(item["key"], _sklearn_idf(n_docs, df))
         weight = TYPE_WEIGHTS.get(item["label"], 1.0)
-        score = float(item["tfidf_max"]) * float(idf) * weight
+        score = float(item["tfidf_max"]) * float(idf) * weight * float(item["ner_score"])
         ngrams = ngram_size_of(item["display"])
         ranked.append(
             {
@@ -255,7 +272,9 @@ def run_entity_study(
 ) -> Dict[str, Any]:
     """Lê chunks no Qdrant (somente payload) e devolve o relatório de estudo."""
     max_chunks = max(1, min(int(max_chunks), DEFAULT_MAX_CHUNKS))
-    chunks = vector_store.scroll_chunk_payloads(collection_name, max_chunks=max_chunks)
+    chunks = vector_store.scroll_chunk_payloads(
+        collection_name, max_chunks=max_chunks, randomize=True
+    )
     result = analyze_chunks(
         chunks,
         top_n=top_n,
@@ -294,7 +313,9 @@ def run_gliner_entity_study(
     from src.gliner_bert_client import extract as gliner_extract
 
     max_chunks = max(1, min(int(max_chunks), DEFAULT_MAX_CHUNKS))
-    chunks = vector_store.scroll_chunk_payloads(collection_name, max_chunks=max_chunks)
+    chunks = vector_store.scroll_chunk_payloads(
+        collection_name, max_chunks=max_chunks, randomize=True
+    )
     texts = [str(chunk.get("content") or "") for chunk in chunks]
     span_lists = gliner_extract(texts, labels=labels) if texts else []
     result = analyze_chunks(
@@ -322,7 +343,7 @@ def _fit_tfidf(texts: List[str]) -> tuple[List[Dict[str, float]], Dict[str, floa
         ngram_range=(1, 3),
         min_df=1,
         max_df=max_df,
-        stop_words=sorted(PT_STOPWORDS),
+        stop_words=sorted(CONTEXT_STOPWORDS),
         lowercase=False,
     )
     try:
@@ -408,6 +429,7 @@ def _accumulate(
     tfidf_max: float,
     point_id: str,
     file_name: str,
+    ner_score: float = 1.0,
 ) -> None:
     current = aggregated.get(key)
     if current is None:
@@ -419,11 +441,14 @@ def _accumulate(
             "has_ner": has_ner,
             "has_tfidf": tfidf_max > 0,
             "tfidf_max": tfidf_max,
+            "ner_score": ner_score,
             "point_ids": [point_id] if point_id else [],
             "file_names": {file_name} if file_name else set(),
         }
         return
 
+    if has_ner:
+        current["ner_score"] = max(current["ner_score"], ner_score) if current["has_ner"] else ner_score
     if has_ner and not current["has_ner"]:
         current["label"] = label
         current["display"] = display
