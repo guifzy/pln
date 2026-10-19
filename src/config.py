@@ -20,6 +20,9 @@ class Config:
     QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
     QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)  # Opcional para autenticação
     
+    # Armazenamento (local por padrão; MinIO é opcional, ver docker-compose --profile minio)
+    USE_MINIO = os.getenv("USE_MINIO", "false").strip().lower() in {"1", "true", "yes", "on"}
+
     # MinIO
     MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
     MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")

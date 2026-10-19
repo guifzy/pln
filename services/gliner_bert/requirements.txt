@@ -1,6 +1,11 @@
 fastapi>=0.110,<1
 uvicorn[standard]>=0.27,<1
 pydantic>=2,<3
+# Necessário pelo import_protobuf_decode_error do Transformers (Python 3.12).
+# Fixado (não é range) para build reprodutível: um intervalo aberto deixa o pip
+# resolver versões diferentes em máquinas/datas de build diferentes, o que já
+# causou erro de runtime (mismatch de protobuf) numa segunda máquina.
+protobuf==5.29.6
 transformers>=4.40,<5
 gliner>=0.2.8,<1
 tokenizers>=0.19

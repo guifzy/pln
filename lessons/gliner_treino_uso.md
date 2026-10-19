@@ -1,7 +1,7 @@
 # GLiNER — Guia de treino e uso (encoder BERTimbau)
 
-**Versão:** 3.6.4  
-**Data da alteração:** 2026-08-25
+**Versão:** 3.7.0  
+**Data da alteração:** 2026-09-16
 
 Este documento reúne o fluxo educacional de **inferência** e **treino** do GLiNER neste projeto: o que cada modelo faz, como subir o container Torch, o contrato do JSON BIO (IOB2), o job assíncrono, o checkpoint em disco e como passar a usar o modelo treinado.
 
@@ -10,10 +10,10 @@ Os exemplos seguem o padrão REST da aplicação (Flask em `http://localhost:500
 > **Importante:** o `rag-demo-app` **não** instala PyTorch. NER pesado e treino vivem no container `gliner-bert`. Não copie `torch` para o `requirements.txt` da aplicação Flask.
 
 Documentação curta do sistema (arquitetura e flags):  
-[docs/gliner-bertimbau.md](docs/gliner-bertimbau.md)
+[docs/gliner-bertimbau.md](../docs/gliner-bertimbau.md)
 
 Tela irmã (spaCy, sem Torch):  
-[docs/entidades-tfidf-ner.md](docs/entidades-tfidf-ner.md)
+[docs/entidades-tfidf-ner.md](../docs/entidades-tfidf-ner.md)
 
 ---
 
@@ -136,9 +136,9 @@ O Flask lê `GLINER_BERT`, `GLINER_BERT_URL`, `GLINER_BERT_TIMEOUT`, `GLINER_LAB
 
 ---
 
-## 5. Subir o serviço (CPU)
+## 5. Subir o serviço (CPU) — já é o padrão
 
-Inferência e treino já funcionam na imagem CPU. O treino é mais lento (batch 1).
+Desde a v3.7.0, `env.example` já traz `GLINER_BERT=true`: `./setup.sh` sobe o `gliner-bert` automaticamente, sem editar nada. Inferência e treino já funcionam na imagem CPU. O treino é mais lento (batch 1).
 
 ```env
 GLINER_BERT=true
@@ -146,10 +146,14 @@ GLINER_TRAIN=false
 ```
 
 ```bash
-docker compose --profile gliner up -d --build rag-demo-app gliner-bert
+./setup.sh
+# equivalente manual:
+docker compose --profile gliner up -d --build --force-recreate rag-demo-app gliner-bert
 ```
 
-O `setup.sh` sobe o profile `gliner` quando `GLINER_BERT=true`.
+O `setup.sh` sobe o profile `gliner` quando `GLINER_BERT=true` no `.env` — e essa é a flag padrão a partir de agora. O profile Compose (`--profile gliner`) continua **obrigatório** em qualquer comando `docker compose` manual: mesmo com `GLINER_BERT=true`, um `docker compose up -d` sem `--profile gliner` não sobe o `gliner-bert` (profiles do Compose exigem a flag na linha de comando, não só no `.env`).
+
+Para **desativar** o GLiNER (economizar RAM/CPU): `GLINER_BERT=false` no `.env` e rode `./setup.sh` de novo.
 
 Primeira subida baixa BERTimbau NER + GLiNER multi para `volumes/huggingface`. Reserve ~4 GB de RAM para o container (`mem_limit: 4g` no Compose). O healthcheck tem `start_period` de 180 s.
 
@@ -196,7 +200,7 @@ GLINER_TRAIN=true
 ```
 
 ```bash
-docker compose --profile gliner-train up -d --build rag-demo-app gliner-bert-gpu
+docker compose --profile gliner-train up -d --build --force-recreate rag-demo-app gliner-bert-gpu
 ```
 
 O serviço GPU usa `Dockerfile.gpu`, `mem_limit: 8g` e o **mesmo** `container_name: gliner-bert` (hostname interno inalterado). Não suba `gliner` e `gliner-train` ao mesmo tempo: os dois querem a porta 8080 e o mesmo nome de container.
@@ -501,9 +505,6 @@ O encoder BERTimbau é baixado (ou lido do cache HF) na hora do job. A cabeça d
 
 ## 17. Usar o modelo treinado na inferência
 
-**Versão:** 3.6.4  
-**Data da alteração:** 2026-08-25
-
 Depois que o job chega em `state=done`, o checkpoint já está em `volumes/gliner-checkpoints/<nome>/`. A extração **ainda** usa o modelo em memória até você trocar.
 
 Pela interface (recomendado): tela **Treinar GLiNER** → **Usar na extração**, ou **Entidades (GLiNER)** → seletor **Modelo GLiNER** → pasta `(disco)` → **Carregar**.
@@ -652,6 +653,21 @@ Corrija a anotação IOB2 (cada entidade começa com `B-`).
 **Flask 503 em `/api/gliner-train` com mensagem `GLINER_BERT=false`**  
 O `rag-demo-app` lê o `.env` na criação do container. Depois de mudar a flag: `docker compose --profile gliner up -d --force-recreate rag-demo-app`.
 
+**Erro de protobuf ao construir/subir `gliner-bert` (numa máquina nova)**  
+Sintomas: build falha na linha `RUN python -c "from google.protobuf import __version__..."` do `Dockerfile`, ou o container sobe e cai com algo como `TypeError: Descriptors cannot not be created directly` / `Descriptor ... incompatible with this protobuf runtime`.
+
+Causa: até a v3.6.4, `services/gliner_bert/requirements.txt` fixava `protobuf` como **range** (`>=4.25.3,<6`), então `pip install` podia resolver uma versão diferente em builds separados (máquina, data, cache de camada diferentes) — uma combinação funciona com `transformers`/`gliner`, outra não. Da v3.7.0 em diante o `protobuf` está **fixado** (`==5.29.6`), então um `docker compose --profile gliner build gliner-bert` (com ou sem cache) resolve sempre a mesma versão.
+
+Se o erro aparecer numa imagem construída antes desta mudança, ou mesmo depois:
+
+```bash
+docker compose --profile gliner exec gliner-bert pip show protobuf   # confirma a versão instalada
+docker compose --profile gliner build --no-cache gliner-bert         # força reinstalar do zero
+docker compose --profile gliner up -d --force-recreate gliner-bert
+```
+
+Se persistir com `protobuf==5.29.6` instalado, o problema é outro (ex.: nova versão de `transformers`/`gliner` quebrando compat) — capture o log completo antes de tentar de novo.
+
 ---
 
 ## TO-DOs
@@ -662,6 +678,7 @@ O `rag-demo-app` lê o `.env` na criação do container. Depois de mudar a flag:
 
 ## Melhorias realizadas
 
+- [x] `GLINER_BERT=true` como padrão em `env.example`; `protobuf` fixado (`==5.29.6`) no `requirements.txt` do `gliner-bert` para builds reprodutíveis entre máquinas (2026-09-16)
 - [x] Profile Compose `gliner` e flag `GLINER_BERT` (2026-08-25)
 - [x] Serviço FastAPI BERTimbau NER + GLiNER (2026-08-25)
 - [x] Proxy Flask sem torch (2026-08-25)

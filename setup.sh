@@ -75,7 +75,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "NOTAS:"
             echo "  • O modo --clean preserva automaticamente volumes com dados"
-            echo "  • Volumes preservados: n8n, postgres, qdrant, minio"
+            echo "  • Volumes preservados: n8n, postgres, qdrant, minio (se em uso)"
             echo "  • Use --clean para gerenciar dados existentes"
             exit 0
             ;;
@@ -362,7 +362,7 @@ fix_volume_permissions() {
         log_success "Permissões do Qdrant configuradas"
     fi
     
-    # MinIO - usuário padrão (UID 1000)
+    # MinIO (opcional, uso avançado) - usuário padrão (UID 1000)
     if [ -d "volumes/minio" ]; then
         log_info "Configurando permissões do MinIO (UID 1000)..."
         if command -v sudo &> /dev/null; then
@@ -376,13 +376,13 @@ fix_volume_permissions() {
         fi
         log_success "Permissões do MinIO configuradas"
     fi
-    
+
     log_success "Permissões dos volumes corrigidas"
 }
 
 # Criar diretórios principais
 create_directory_with_permissions "uploads"
-create_directory_with_permissions "volumes/minio" 1000 1000
+create_directory_with_permissions "data/storage"
 create_directory_with_permissions "volumes/qdrant" 1000 1000
 create_directory_with_permissions "volumes/n8n" 1000 1000
 create_directory_with_permissions "volumes/postgres" 70 70
@@ -442,7 +442,7 @@ fi
 
 # Verificar se todos os diretórios foram criados
 log_info "Verificando diretórios criados..."
-required_dirs=("uploads" "volumes/minio" "volumes/qdrant" "volumes/n8n" "volumes/postgres" "volumes/huggingface" "volumes/gliner-checkpoints" "static/css" "static/js" "static/images" "src" "templates" "scripts" "docs")
+required_dirs=("uploads" "data/storage" "volumes/qdrant" "volumes/n8n" "volumes/postgres" "volumes/huggingface" "volumes/gliner-checkpoints" "static/css" "static/js" "static/images" "src" "templates" "scripts" "docs")
 
 for dir in "${required_dirs[@]}"; do
     if [ -d "$dir" ]; then
@@ -499,7 +499,10 @@ MODEL_QA_GENERATOR=gpt-4o-mini
 QDRANT_HOST=localhost
 QDRANT_PORT=6333
 
-# MinIO
+# Armazenamento local por padrão (arquivos ficam em data/storage)
+USE_MINIO=false
+
+# MinIO (opcional, uso avançado: docker compose --profile minio up)
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
@@ -630,7 +633,8 @@ fi
 
 log_success "Arquivos do projeto verificados"
 
-# GLiNER + BERTimbau: profile opcional (não sobe no compose padrão)
+# GLiNER + BERTimbau: sobe via profile Compose, ligado por padrão em env.example
+# (GLINER_BERT=true). Para desativar, troque para false no .env antes de rodar.
 gliner_bert_enabled() {
     [ -f .env ] || return 1
     grep -qiE '^[[:space:]]*GLINER_BERT[[:space:]]*=[[:space:]]*(true|1|yes)[[:space:]]*$' .env
@@ -687,9 +691,9 @@ log_info "Iniciando serviços Docker..."
 
 if [ "$DEV_MODE" = true ]; then
     if [ -n "$GLINER_COMPOSE_SERVICE" ]; then
-        docker compose "${COMPOSE_PROFILE_ARGS[@]}" up -d qdrant minio postgres n8n rag-demo-app "$GLINER_COMPOSE_SERVICE"
+        docker compose "${COMPOSE_PROFILE_ARGS[@]}" up -d qdrant postgres n8n rag-demo-app "$GLINER_COMPOSE_SERVICE"
     else
-        docker compose up -d qdrant minio postgres n8n rag-demo-app
+        docker compose up -d qdrant postgres n8n rag-demo-app
     fi
     log_info "Serviços iniciados em modo desenvolvimento (incluindo PostgreSQL e n8n)"
 else
@@ -735,7 +739,6 @@ check_service() {
 log_info "Verificando saúde dos serviços..."
 
 check_service "Qdrant" "http://localhost:6333/collections" "api-key: ${QDRANT_API_KEY}"
-check_service "MinIO" "http://localhost:9000/minio/health/live"
 
 # Verificar PostgreSQL
 log_info "Verificando PostgreSQL..."
@@ -810,7 +813,6 @@ echo "║                      URLs de Acesso                         ║"
 echo "╠══════════════════════════════════════════════════════════════╣"
 echo "║  🌐 RAG-Demo:        http://localhost:5000                  ║"
 echo "║  🔍 Qdrant:          http://localhost:6333/dashboard        ║"
-echo "║  📦 MinIO:           http://localhost:9001                  ║"
 echo "║  🗄️  PostgreSQL:      localhost:5432                        ║"
 echo "║  🔧 n8n:             http://localhost:5678                  ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -818,7 +820,6 @@ echo -e "${NC}"
 
 echo -e "${GREEN}"
 echo "🔑 Credenciais:"
-echo "   • MinIO: minioadmin / minioadmin"
 echo "   • PostgreSQL: chat_user / chat_password"
 echo "   • n8n: admin / admin123"
 echo -e "${NC}"

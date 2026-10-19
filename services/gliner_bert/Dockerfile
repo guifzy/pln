@@ -10,6 +10,9 @@ COPY requirements.txt requirements-train.txt ./
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir -r requirements.txt -r requirements-train.txt
 
+# Falhar durante o build, em vez de somente quando o FastAPI carregar os modelos.
+RUN python -c "from google.protobuf import __version__; print('protobuf', __version__)"
+
 COPY span_merge.py bio_to_gliner.py train_job.py checkpoint_store.py app.py example_bio.json ./
 
 ENV HF_HOME=/models

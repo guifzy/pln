@@ -274,8 +274,10 @@ class LocalStorage:
 class StorageManager:
     """Gerenciador de armazenamento com fallback."""
     
-    def __init__(self, use_minio: bool = True):
+    def __init__(self, use_minio: bool = None):
         """Inicializa o gerenciador de armazenamento."""
+        if use_minio is None:
+            use_minio = config.USE_MINIO
         self.use_minio = use_minio
         
         if use_minio:

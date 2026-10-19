@@ -103,7 +103,7 @@ fix_permissions "volumes/postgres" 70 70 "PostgreSQL"
 # Qdrant - usuário padrão (UID 1000)
 fix_permissions "volumes/qdrant" 1000 1000 "Qdrant"
 
-# MinIO - usuário padrão (UID 1000)
+# MinIO (opcional; só existe se habilitado com --profile minio) - usuário padrão (UID 1000)
 fix_permissions "volumes/minio" 1000 1000 "MinIO"
 
 # Verificar permissões corrigidas

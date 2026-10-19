@@ -11,6 +11,7 @@ services:
       - FLASK_ENV=development
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
+      - USE_MINIO=${USE_MINIO:-false}
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
@@ -29,9 +30,9 @@ services:
       - POSTGRES_PASSWORD=chat_password
     volumes:
       - ./uploads:/app/uploads
+      - ./data:/app/data
     depends_on:
       - qdrant
-      - minio
       - n8n
       - postgres
     networks:
@@ -139,10 +140,11 @@ services:
     networks:
       - rag-network
 
-  # MinIO para armazenamento de arquivos
+  # MinIO para armazenamento de arquivos (opcional). Só sobe com --profile minio
   minio:
+    profiles: ["minio"]
     container_name: minio
-    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    image: quay.io/minio/minio:RELEASE.2023-03-20T20-16-18Z
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin

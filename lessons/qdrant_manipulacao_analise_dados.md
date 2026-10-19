@@ -4706,7 +4706,7 @@ A partir da **v3.6.1** o treino GLiNER roda em **CPU** no profile `gliner` (GPU 
 
 A partir da **v3.5.0** existe a tela irmã **Entidades (GLiNER)**. O rag-demo **não** instala PyTorch: com `GLINER_BERT=true` o Compose sobe o profile `gliner` (container `gliner-bert`) com BERTimbau NER + GLiNER. O Flask só faz proxy HTTP (`GET /api/gliner-bert/status`, `POST /api/gliner-study`). A partir da **v3.6.2** os menus ficam sempre visíveis; se o container estiver desligado, a tela avisa e desativa o botão. Regex de códigos continua no rag-demo.
 
-Guia de treino (JSON BIO) e uso do checkpoint: [gliner_treino_uso.md](gliner_treino_uso.md). Resumo do serviço: [docs/gliner-bertimbau.md](docs/gliner-bertimbau.md).
+Guia de treino (JSON BIO) e uso do checkpoint: [gliner_treino_uso.md](gliner_treino_uso.md). Resumo do serviço: [docs/gliner-bertimbau.md](../docs/gliner-bertimbau.md).
 
 A saída é um **rascunho** de golden set no formato do item 29.1 (`query`, `category`, `candidate_points`). O avaliador confirma `relevant_points` antes de calcular Recall@K / MRR.
 
@@ -4716,7 +4716,7 @@ Não use spaCy 3.0: o projeto está em Python 3.12; o suporte começa na spaCy 3
 
 Documentação da funcionalidade:
 
-[docs/entidades-tfidf-ner.md](docs/entidades-tfidf-ner.md)
+[docs/entidades-tfidf-ner.md](../docs/entidades-tfidf-ner.md)
 
 API:
 
